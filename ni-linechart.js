@@ -1,8 +1,10 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
 class NILineChart extends HTMLElement {
   constructor() {
     // Initialization code here
     super();
+
     // check for d3 variable
     if (typeof d3 === "undefined") {
       // set message to thius component
@@ -12,7 +14,6 @@ class NILineChart extends HTMLElement {
     this.setupDefaults();
   }
   setupDefaults() {
-    this.paramOptions = ["data", "dotSize", "dotColor", "lineColor", "width", "height", "margin"];
     this.id = `ni-line-chart-${Math.random().toString(36).substr(2, 9)}`;
     this.data = [];
     for (let i = 1; i <= 30; i++) {
@@ -21,49 +22,93 @@ class NILineChart extends HTMLElement {
         value: Math.floor(Math.random() * 10) + 1
       });
     }
-    this.dotSize = 5;
-    this.dotColor = "oklch(0.8435 0.1399 93.01)";
-
-    this.lineColor = "oklch(0.8435 0.1399 93.01)";
-    this.width = 960;
-    this.height = 500;
-    this.margin = { top: 20, right: 20, bottom: 30, left: 50 };
+    this.options = {
+      data: this.data,
+      dotSize: 5,
+      dotColor: "oklch(0.8435 0.1399 93.01)",
+      activeDotColor: "red",
+      activeDotSize: 7,
+      lineColor: "oklch(0.8435 0.1399 93.01)",
+      height: 500,
+      width: 960,
+      margin: { top: 20, right: 20, bottom: 30, left: 50 },
+      tooltipField: null,
+      tooltipPosition: "near", // options are side and near
+      tooltopBackground: "rgba(0, 0, 0, 0.7)",
+      tooltipColor: "#fff",
+      tooltipPadding: "5px",
+      tooltipBorderRadius: "3px"
+    };
   }
   getAttributes() {
-    this.paramOptions.forEach((attr) => {
-      console.log({ attr });
-      const dataAttr = this.getAttribute(attr);
+    for (const key in this.options) {
+      const dataAttr = this.getAttribute(key);
       if (!dataAttr) {
-        return;
+        this[key] = this.options[key];
+        continue;
       }
-      if (attr == "data") {
+      if (key == "data") {
         this.data = JSON.parse(dataAttr);
+        this.options.data = this.data;
       } else {
-        this[attr] = dataAttr;
+        this.options[key] = dataAttr;
+        this[key] = this.options[key];
       }
-    });
+    }
   }
 
   connectedCallback() {
+    // this.attachShadow({ mode: "open" }).adoptedStyleSheets = [linechartStyles];
+
     // look for data attribute
     this.getAttributes();
 
     this.setChart();
+    this.setUpTooltip();
+  }
+  setUpTooltip() {
+    if (!this.tooltipField) {
+      return;
+    }
+    this.tooltip = document.createElement("div");
+    this.tooltip.style.background = this.tooltopBackground;
+    this.tooltip.style.color = this.tooltipColor;
+    this.tooltip.style.padding = this.tooltipPadding;
+    this.tooltip.style.borderRadius = this.tooltipBorderRadius;
+    this.tooltip.style.pointerEvents = "none";
+    this.tooltip.style.display = "none";
+    if (this.tooltipPosition == "near") {
+      // TODO: CONSIDER USING ANCHOR POSITION INSTEAD
+      this.tooltip.style.position = "absolute";
+      this.tooltip.style.top = "var(--tooltip-top)";
+      this.tooltip.style.left = "var(--tooltip-left)";
+    }
+    if (this.tooltipPosition == "side") {
+      if (this.querySelector("div.inner")) {
+        this.querySelector("div.inner").style.display = "flex";
+      }
+    }
+    if (this.querySelector("div.inner")) {
+      this.querySelector("div.inner").appendChild(this.tooltip);
+    } else {
+      this.appendChild(this.tooltip);
+    }
   }
 
   setChart() {
     const div = document.createElement("div");
+    div.classList.add("inner");
     const $this = this;
     this.appendChild(div);
-    div.id = this.id;
 
-    d3.selectAll("#" + this.id.value + " > *").remove();
+    d3.selectAll("#" + this.id + " > div.inner > svg").remove();
     const margin = this.margin;
+
     const innerWidth = this.width - margin.left - margin.right;
     const innerHeight = this.height - margin.top - margin.bottom;
 
     const svg = d3
-      .select("#" + this.id)
+      .select("#" + this.id + "> div.inner")
       .append("svg")
       .attr("width", this.width)
       .attr("height", this.height)
@@ -122,30 +167,37 @@ class NILineChart extends HTMLElement {
       .attr("r", function (d) {
         return $this.getDotSize();
       })
-      .attr("fill", this.dotColor)
-      .on("mouseover", function (d, i) {
-        let index = this.data.indexOf(i);
-        activeHover.value = index;
-        const dotBounds = d.target.getBoundingClientRect();
-        d.target.style.cursor = "pointer";
-        let actives = document.querySelectorAll("#" + this.id.value + " circle.active");
-        actives.forEach((active) => {
-          active.classList.remove("active");
+      .attr("fill", this.dotColor);
+
+    if (this.tooltipField) {
+      svg
+        .selectAll("circle")
+        .on("mouseover", function (d, i) {
+          const tooltipValue = i[$this.tooltipField];
+          const dotBounds = d.target.getBoundingClientRect();
+          d.target.style.cursor = "pointer";
+          $this.tooltip.innerHTML = tooltipValue;
+          $this.tooltip.style.display = "block";
+
+          let actives = document.querySelectorAll("#" + $this.id + " circle.active");
+          actives.forEach((active) => {
+            active.classList.remove("active");
+          });
+          d.target.classList.add("active");
+
+          const pageX = dotBounds.left + dotBounds.width / 2;
+          const pageY = dotBounds.top + dotBounds.height / 2;
+
+          const subtraction = 50;
+          const addition = 30;
+
+          $this.style.setProperty("--tooltip-top", pageY + addition + "px");
+          $this.style.setProperty("--tooltip-left", pageX - subtraction + "px");
+        })
+        .on("mouseout", function () {
+          // activeHover.value = null;
         });
-        d.target.classList.add("active");
-
-        const pageX = dotBounds.left + dotBounds.width / 2;
-        const pageY = dotBounds.top + dotBounds.height / 2;
-
-        const subtraction = 50;
-        const addition = 30;
-        let root = document.querySelector(":root");
-        root.style.setProperty("--tooltip-top", pageY + addition + "px");
-        root.style.setProperty("--tooltip-left", pageX - subtraction + "px");
-      })
-      .on("mouseout", function () {
-        // activeHover.value = null;
-      });
+    }
   }
   getDotSize() {
     return this.dotSize;
