@@ -1,51 +1,287 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <title>Next Iteration - Projects</title>
-  </head>
-  <style>
-    @layer old, new;
-    @import url("/style.css") layer(old);
-    @import url("/style2026.css") layer(new);
-  </style>
-  <script type="module" src="/assets/js/ni-header.js"></script>
-  <script type="module" src="/assets/js/components/NILineChart/ni-linechart.js"></script>
-  <meta name="view-transition" content="same-origin" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <body>
-    <ni-header></ni-header>
-    <main>
-      <script>
-        const lineData = [
-          { date: "2025-03-22", value: 7, tooltip: "March 22, 2025" },
-          { date: "2025-03-29", value: 7, tooltip: "March 29, 2025" },
-          { date: "2025-05-01", value: 9, tooltip: "May 1, 2025" },
-          { date: "2025-05-02", value: 9.5, tooltip: "May 2, 2025" },
-          { date: "2025-05-03", value: 8.5, tooltip: "May 3, 2025" },
-          { date: "2025-05-04", value: 8.5, tooltip: "May 4, 2025" },
-          { date: "2025-05-05", value: 9.5, tooltip: "May 5, 2025" },
-          { date: "2025-05-25", value: 8.5, tooltip: "May 25, 2025" },
-          { date: "2025-05-28", value: 9, tooltip: "May 28, 2025" },
-          { date: "2025-05-29", value: 8, tooltip: "May 29, 2025" },
-          { date: "2025-07-02", value: 9, tooltip: "July 2, 2025" },
-          { date: "2025-07-03", value: 10, tooltip: "July 3, 2025" },
-          { date: "2025-07-11", value: 8.5, tooltip: "July 11, 2025" },
-          { date: "2025-07-14", value: 9, tooltip: "July 14, 2025" },
-          { date: "2025-07-15", value: 8.5, tooltip: "July 15, 2025" },
-          { date: "2025-09-06", value: 9, tooltip: "September 6, 2025" }
-        ];
-      </script>
-      <h2>First one - with a near position</h2>
-      <ni-line-chart id="line" tooltipField="tooltip" activeDotColor="orange"></ni-line-chart>
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+const NILineChartStyles = new CSSStyleSheet();
+NILineChartStyles.replaceSync(`
+  ni-line-chart {
+    container-type: inline-size;
+    container-name: ni-line-chart;
+    --tooltipFlexDirection: row;
+  }
+  ni-line-chart .inner {
+    position: relative;
 
-      <h2>Second one - with a side position</h2>
-      <ni-line-chart id="line2" tooltipField="tooltip" tooltipPosition="side"></ni-line-chart>
-      <script>
-        const lineChart = document.getElementById("line");
-        const lineChart2 = document.getElementById("line2");
-        lineChart.setAttribute("data", JSON.stringify(lineData));
-        lineChart2.setAttribute("data", JSON.stringify(lineData));
-      </script>
-    </main>
-  </body>
-</html>
+    @container (width <= 600px) {
+      flex-direction: column;
+    }
+  }
+  ni-line-chart svg {
+    position: relative;
+    max-width: 100%;
+  }
+  ni-line-chart circle {
+    fill: var(--dotColor);
+    r: var(--dotSize);
+    transition: fill .4s ease, r .4s ease;
+  }  
+  ni-line-chart circle.active {
+    fill: var(--activeDotColor);    
+    r: var(--activeDotSize);
+  }    
+  ni-line-chart.tooltip-side .inner {
+    display: flex;    
+    gap: 2rem;
+    flex-direction: var(--tooltipFlexDirection);
+  }
+  ni-line-chart.tooltip-side .ni-tooltip {
+    max-height: 200px;
+    width: calc(var(--tooltipWidth) * 1px);
+  }
+  
+`);
+class NILineChart extends HTMLElement {
+  constructor() {
+    // Initialization code here
+    super();
+
+    // create link to stylesheet -- this only works if we keep the url consistent, so isn't replicable
+    document.adoptedStyleSheets = [NILineChartStyles];
+
+    // check for d3 variable
+    if (typeof d3 === "undefined") {
+      // set message to thius component
+      this.textContent = "The d3 javascript library is not found";
+      throw new Error("d3 is not loaded");
+    }
+    this.setupDefaults();
+  }
+
+  connectedCallback() {
+    // look for data attribute
+    this.getAttributes();
+
+    this.setChart();
+    this.setListeners();
+  }
+  setListeners() {
+    // resize listener
+    window.addEventListener("resize", () => {
+      this.setChart();
+      this.setDynamicWidth(true);
+    });
+  }
+  setupDefaults() {
+    this.id = `ni-line-chart-${Math.random().toString(36).substr(2, 9)}`;
+    this.data = [];
+    for (let i = 1; i <= 30; i++) {
+      this.data.push({
+        date: `2026-08-${i}`,
+        value: Math.floor(Math.random() * 10) + 1
+      });
+    }
+    this.options = {
+      data: this.data,
+      dotSize: 5,
+      dotColor: "oklch(0.8435 0.1399 93.01)",
+      activeDotColor: "oklch(61.719% 0.24781 21.296)",
+      activeDotSize: 7,
+      lineColor: "oklch(0.8435 0.1399 93.01)",
+      height: null,
+      width: null,
+      margin: { top: 20, right: 20, bottom: 30, left: 50 },
+      tooltipField: null,
+      tooltipPosition: "near", // options are side and near
+      tooltopBackground: "rgba(0, 0, 0, 0.7)",
+      tooltipWidth: 150,
+      tooltipColor: "#fff",
+      tooltipPadding: "5px",
+      tooltipBorderRadius: "3px",
+      tooltipSideFoldWidth: 600,
+      ratio: 2.5 // height to width ratio
+    };
+  }
+  getAttributes() {
+    for (const key in this.options) {
+      const dataAttr = this.getAttribute(key);
+      if (!dataAttr) {
+        this[key] = this.options[key];
+        this.style.setProperty("--" + key, this.options[key]);
+        continue;
+      }
+      if (key == "data") {
+        this.data = JSON.parse(dataAttr);
+        this.options.data = this.data;
+      } else {
+        this.options[key] = dataAttr;
+        this[key] = this.options[key];
+        this.style.setProperty("--" + key, this.options[key]);
+      }
+    }
+
+    if (!this.width) {
+      this.setDynamicWidth();
+    }
+  }
+
+  setUpTooltip() {
+    if (!this.tooltipField) {
+      return;
+    }
+    this.tooltip = document.createElement("div");
+    this.tooltip.style.background = this.tooltopBackground;
+    this.tooltip.style.color = this.tooltipColor;
+    this.tooltip.style.padding = this.tooltipPadding;
+    this.tooltip.style.borderRadius = this.tooltipBorderRadius;
+    this.tooltip.style.pointerEvents = "none";
+    this.tooltip.style.display = "none";
+    this.classList.add("tooltip-" + this.tooltipPosition);
+    this.tooltip.classList.add("ni-tooltip");
+    if (this.tooltipPosition == "near") {
+      // TODO: CONSIDER USING ANCHOR POSITION INSTEAD
+      // NOT READY FOR PRIMETIME YET - https://github.com/w3c/csswg-drafts/issues/11301
+      this.tooltip.style.position = "absolute";
+      this.tooltip.style.top = "var(--tooltip-top)";
+      this.tooltip.style.left = "var(--tooltip-left)";
+    }
+
+    if (this.querySelector("div.inner")) {
+      this.querySelector("div.inner").appendChild(this.tooltip);
+    } else {
+      this.appendChild(this.tooltip);
+    }
+  }
+  setDynamicWidth(r = false) {
+    if (this.parentElement) {
+      if (
+        this.tooltipField &&
+        this.tooltipPosition == "side" &&
+        this.parentElement.offsetWidth > this.tooltipSideFoldWidth
+      ) {
+        this.width = this.parentElement.offsetWidth - this.tooltipWidth;
+        this.options.width = this.width;
+        this.style.setProperty("--tooltipFlexDirection", "row");
+      } else {
+        this.width = this.parentElement.offsetWidth;
+        this.options.width = this.width;
+        this.style.setProperty("--tooltipFlexDirection", "column");
+      }
+
+      if (!this.height || r) {
+        this.height = this.width / this.ratio;
+        this.options.height = this.height;
+      }
+    }
+  }
+
+  setChart() {
+    const $this = this;
+    if (!this.querySelector("div.inner")) {
+      const div = document.createElement("div");
+      div.classList.add("inner");
+      this.appendChild(div);
+    }
+    d3.selectAll("#" + this.id + " > div.inner > *").remove();
+
+    const margin = this.margin;
+
+    const innerWidth = this.width - margin.left - margin.right;
+    const innerHeight = this.height - margin.top - margin.bottom;
+
+    const svg = d3
+      .select("#" + this.id + "> div.inner")
+      .append("svg")
+      .attr("width", this.width)
+      .attr("height", this.height)
+      .append("g")
+      .attr("transform", "translate(" + this.margin.left + "," + this.margin.top + ")");
+
+    const x = d3.scaleTime().range([0, innerWidth]);
+    const y = d3.scaleLinear().range([innerHeight, 0]);
+
+    const parseTime = d3.timeParse("%Y-%m-%d");
+
+    const line = d3
+      .line()
+      .x((d) => x(parseTime(d.date)))
+      .y((d) => y(d.value));
+
+    // const straightline = d3
+    //   .line()
+    //   .x((d) => x(d.date))
+    //   .y((d) => y(d.value));
+
+    x.domain(
+      d3.extent(this.data, (d) => {
+        return parseTime(d.date);
+      })
+    );
+    y.domain([0, 10]);
+
+    svg
+      .append("g")
+      .attr("transform", "translate(0," + innerHeight + ")")
+      .call(d3.axisBottom(x));
+
+    svg.append("g").call(d3.axisLeft(y));
+
+    svg
+      .append("path")
+      .datum(this.data)
+      .attr("fill", "none")
+      .attr("stroke", this.lineColor)
+      .attr("stroke-width", 1.5)
+      .attr("d", line);
+
+    svg
+      .append("g")
+      .selectAll("dot")
+      .data(this.data)
+      .enter()
+      .append("circle")
+      .attr("cx", function (d) {
+        return x(parseTime(d.date));
+      })
+      .attr("cy", function (d) {
+        return y(d.value);
+      })
+      .attr("r", function (d) {
+        return $this.getDotSize();
+      });
+    // .attr("fill", this.dotColor);
+
+    if (this.tooltipField) {
+      svg
+        .selectAll("circle")
+        .on("mouseover", function (d, i) {
+          const tooltipValue = i[$this.tooltipField];
+          const dotBounds = d.target.getBoundingClientRect();
+          const innerBounds = $this.querySelector(".inner").getBoundingClientRect();
+
+          d.target.style.cursor = "pointer";
+          $this.tooltip.innerHTML = tooltipValue;
+          $this.tooltip.style.display = "block";
+
+          let actives = document.querySelectorAll("#" + $this.id + " circle.active");
+          actives.forEach((active) => {
+            active.classList.remove("active");
+          });
+          d.target.classList.add("active");
+
+          const pageX = dotBounds.left - innerBounds.left + dotBounds.width / 2;
+          const pageY = dotBounds.top - innerBounds.top + dotBounds.height / 2;
+
+          const subtraction = 50;
+          const addition = 30;
+
+          $this.style.setProperty("--tooltip-top", pageY + addition + "px");
+          $this.style.setProperty("--tooltip-left", pageX - subtraction + "px");
+        })
+        .on("mouseout", function () {
+          // activeHover.value = null;
+        });
+    }
+    $this.setUpTooltip();
+  }
+  getDotSize() {
+    return this.dotSize;
+  }
+}
+customElements.define("ni-line-chart", NILineChart);
