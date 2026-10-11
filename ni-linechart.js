@@ -69,7 +69,7 @@ class NILineChart extends HTMLElement {
     });
   }
   setupDefaults() {
-    this.id = `ni-line-chart-${Math.random().toString(36).substr(2, 9)}`;
+    this.chartid = `ni-line-chart-${Math.random().toString(36).substr(2, 9)}`;
     this.data = [];
     for (let i = 1; i <= 30; i++) {
       this.data.push({
@@ -176,9 +176,10 @@ class NILineChart extends HTMLElement {
     if (!this.querySelector("div.inner")) {
       const div = document.createElement("div");
       div.classList.add("inner");
+      div.id = this.chartid;
       this.appendChild(div);
     }
-    d3.selectAll("#" + this.id + " > div.inner > *").remove();
+    d3.selectAll("#" + this.chartid + " > *").remove();
 
     const margin = this.margin;
 
@@ -186,7 +187,7 @@ class NILineChart extends HTMLElement {
     const innerHeight = this.height - margin.top - margin.bottom;
 
     const svg = d3
-      .select("#" + this.id + "> div.inner")
+      .select("#" + this.chartid)
       .append("svg")
       .attr("width", this.width)
       .attr("height", this.height)
@@ -259,7 +260,7 @@ class NILineChart extends HTMLElement {
           $this.tooltip.innerHTML = tooltipValue;
           $this.tooltip.style.display = "block";
 
-          let actives = document.querySelectorAll("#" + $this.id + " circle.active");
+          let actives = document.querySelectorAll("#" + $this.chartid + " circle.active");
           actives.forEach((active) => {
             active.classList.remove("active");
           });
@@ -284,4 +285,4 @@ class NILineChart extends HTMLElement {
     return this.dotSize;
   }
 }
-customElements.define("ni-line-chart", NILineChart);
+customElements.define("ni-linechart", NILineChart);
