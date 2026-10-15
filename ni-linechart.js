@@ -1,56 +1,59 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-const NILineChartStyles = new CSSStyleSheet();
-NILineChartStyles.replaceSync(`
-  ni-line-chart {
-    container-type: inline-size;
-    container-name: ni-line-chart;
-    --tooltipFlexDirection: row;
-  }
-  ni-line-chart .inner {
-    position: relative;
 
-    @container (width <= 600px) {
-      flex-direction: column;
-    }
-  }
-  ni-line-chart svg {
-    position: relative;
-    max-width: 100%;
-  }
-  ni-line-chart circle {
-    fill: var(--dotColor);
-    r: var(--dotSize);
-    transition: fill .4s ease, r .4s ease;
-  }  
-  ni-line-chart circle.active {
-    fill: var(--activeDotColor);    
-    r: var(--activeDotSize);
-  }    
-  ni-line-chart.tooltip-side .inner {
-    display: flex;    
-    gap: 2rem;
-    flex-direction: var(--tooltipFlexDirection);
-  }
-  ni-line-chart.tooltip-side .ni-tooltip {
-    max-height: 200px;
-    width: calc(var(--tooltipWidth) * 1px);
-  }
-  
-`);
 class NILineChart extends HTMLElement {
+  _addStyles() {
+    if (document.getElementById("ni-linechart-styles")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "ni-linechart-styles";
+    style.textContent = `
+      ni-linechart {
+        container-type: inline-size;
+        container-name: ni-linechart;
+        --tooltipFlexDirection: row;
+      }
+      ni-linechart .inner {
+        position: relative;
+
+        @container (width <= 600px) {
+          flex-direction: column;
+        }
+      }
+      ni-linechart svg {
+        position: relative;
+        max-width: 100%;
+      }
+      ni-linechart circle {
+        fill: var(--dotColor);
+        r: var(--dotSize);
+        transition: fill .4s ease, r .4s ease;
+      }  
+      ni-linechart circle.active {
+        fill: var(--activeDotColor);    
+        r: var(--activeDotSize);
+      }    
+      ni-linechart.tooltip-side .inner {
+        display: flex;    
+        gap: 2rem;
+        flex-direction: var(--tooltipFlexDirection);
+      }
+      ni-linechart.tooltip-side .ni-tooltip {
+        max-height: 200px;
+        width: calc(var(--tooltipWidth) * 1px);
+      }`;
+    document.head.appendChild(style);
+  }
   constructor() {
     // Initialization code here
     super();
-
-    // create link to stylesheet -- this only works if we keep the url consistent, so isn't replicable
-    document.adoptedStyleSheets = [NILineChartStyles];
-
     // check for d3 variable
     if (typeof d3 === "undefined") {
       // set message to thius component
       this.textContent = "The d3 javascript library is not found";
       throw new Error("d3 is not loaded");
     }
+    this._addStyles();
     this.setupDefaults();
   }
 
@@ -69,7 +72,7 @@ class NILineChart extends HTMLElement {
     });
   }
   setupDefaults() {
-    this.chartid = `ni-line-chart-${Math.random().toString(36).substr(2, 9)}`;
+    this.chartid = `ni-linechart-${Math.random().toString(36).substr(2, 9)}`;
     this.data = [];
     for (let i = 1; i <= 30; i++) {
       this.data.push({
