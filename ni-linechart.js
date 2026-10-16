@@ -188,6 +188,7 @@ class NILineChart extends HTMLElement {
       div.classList.add("inner");
       div.id = this.chartid;
       this.appendChild(div);
+      this.chartWrapper = div;
     }
     d3.selectAll("#" + this.chartid + " > *").remove();
 
@@ -264,7 +265,7 @@ class NILineChart extends HTMLElement {
         .on("mouseover", function (d, i) {
           const tooltipValue = i[$this.tooltipField];
           const dotBounds = d.target.getBoundingClientRect();
-          const innerBounds = $this.querySelector(".inner").getBoundingClientRect();
+          const innerBounds = $this.chartWrapper.getBoundingClientRect();
 
           d.target.style.cursor = "pointer";
           $this.tooltip.innerHTML = tooltipValue;
