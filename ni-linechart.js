@@ -54,24 +54,31 @@ class NILineChart extends HTMLElement {
       throw new Error("d3 is not loaded");
     }
     this._addStyles();
-    this.setupDefaults();
+    this._setupDefaults();
   }
 
   connectedCallback() {
     // look for data attribute
-    this.getAttributes();
+    this._getAttributes();
 
-    this.setChart();
-    this.setListeners();
+    this._setChart();
+    this._setListeners();
   }
-  setListeners() {
+  disconnectedCallback() {
+    this._removeListeners();
+  }
+  _setListeners() {
     // resize listener
     window.addEventListener("resize", () => {
-      this.setChart();
-      this.setDynamicWidth(true);
+      this._setChart();
+      this._setDynamicWidth(true);
     });
   }
-  setupDefaults() {
+  _removeListeners() {
+    window.removeEventListener("resize", this._setChart);
+    window.removeEventListener("resize", this._setDynamicWidth);
+  }
+  _setupDefaults() {
     this.chartid = `ni-linechart-${Math.random().toString(36).substr(2, 9)}`;
     this.data = [];
     for (let i = 1; i <= 30; i++) {
@@ -101,7 +108,7 @@ class NILineChart extends HTMLElement {
       ratio: 2.5 // height to width ratio
     };
   }
-  getAttributes() {
+  _getAttributes() {
     for (const key in this.options) {
       const dataAttr = this.getAttribute(key);
       if (!dataAttr) {
@@ -120,11 +127,11 @@ class NILineChart extends HTMLElement {
     }
 
     if (!this.width) {
-      this.setDynamicWidth();
+      this._setDynamicWidth();
     }
   }
 
-  setUpTooltip() {
+  _setUpTooltip() {
     if (!this.tooltipField) {
       return;
     }
@@ -151,7 +158,7 @@ class NILineChart extends HTMLElement {
       this.appendChild(this.tooltip);
     }
   }
-  setDynamicWidth(r = false) {
+  _setDynamicWidth(r = false) {
     if (this.parentElement) {
       if (
         this.tooltipField &&
@@ -174,7 +181,7 @@ class NILineChart extends HTMLElement {
     }
   }
 
-  setChart() {
+  _setChart() {
     const $this = this;
     if (!this.querySelector("div.inner")) {
       const div = document.createElement("div");
@@ -282,7 +289,7 @@ class NILineChart extends HTMLElement {
           // activeHover.value = null;
         });
     }
-    $this.setUpTooltip();
+    $this._setUpTooltip();
   }
   getDotSize() {
     return this.dotSize;
