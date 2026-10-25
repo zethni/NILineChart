@@ -80,15 +80,15 @@ class NILineChart extends HTMLElement {
   }
   _setupDefaults() {
     this.chartid = `ni-linechart-${Math.random().toString(36).substr(2, 9)}`;
-    this.data = [];
+    this.defaultdata = [];
     for (let i = 1; i <= 30; i++) {
-      this.data.push({
+      this.defaultdata.push({
         date: `2026-08-${i}`,
         value: Math.floor(Math.random() * 10) + 1
       });
     }
     this.options = {
-      data: this.data,
+      data: this.defaultdata,
       dotSize: 5,
       dotColor: "oklch(0.8435 0.1399 93.01)",
       activeDotColor: "oklch(61.719% 0.24781 21.296)",
@@ -111,11 +111,13 @@ class NILineChart extends HTMLElement {
   _getAttributes() {
     for (const key in this.options) {
       const dataAttr = this.getAttribute(key);
+      console.log(key, dataAttr);
       if (!dataAttr) {
         this[key] = this.options[key];
         this.style.setProperty("--" + key, this.options[key]);
         continue;
       }
+      console.log(`Attribute ${key}  found, using  value`);
       if (key == "data") {
         this.data = JSON.parse(dataAttr);
         this.options.data = this.data;
@@ -129,6 +131,12 @@ class NILineChart extends HTMLElement {
     if (!this.width) {
       this._setDynamicWidth();
     }
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    console.log("line chart changes:");
+    console.log(name, oldValue, newValue);
+    this._setAttributes({ [name]: newValue });
   }
 
   _setUpTooltip() {
@@ -158,6 +166,16 @@ class NILineChart extends HTMLElement {
       this.appendChild(this.tooltip);
     }
   }
+
+  _setAttributes(changes) {
+    for (const key in changes) {
+      if (changes.hasOwnProperty(key)) {
+        this.setAttribute(key, changes[key]);
+        this[key] = changes[key];
+      }
+    }
+    this._resetChart();
+  }
   _setDynamicWidth(r = false) {
     if (this.parentElement) {
       if (
@@ -180,8 +198,13 @@ class NILineChart extends HTMLElement {
       }
     }
   }
+  _resetChart() {
+    this._getAttributes();
+    this._setChart();
+  }
 
   _setChart() {
+    console.log("setting chart");
     const $this = this;
     if (!this.querySelector("div.inner")) {
       const div = document.createElement("div");
@@ -225,7 +248,7 @@ class NILineChart extends HTMLElement {
         return parseTime(d.date);
       })
     );
-    y.domain([0, 10]);
+    y.domain([0, d3.max(this.data, (d) => d.value)]);
 
     svg
       .append("g")
@@ -233,7 +256,7 @@ class NILineChart extends HTMLElement {
       .call(d3.axisBottom(x));
 
     svg.append("g").call(d3.axisLeft(y));
-
+    console.log(this.data);
     svg
       .append("path")
       .datum(this.data)
@@ -245,7 +268,7 @@ class NILineChart extends HTMLElement {
     svg
       .append("g")
       .selectAll("dot")
-      .data(this.data)
+      .data($this.data)
       .enter()
       .append("circle")
       .attr("cx", function (d) {
