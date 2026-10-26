@@ -111,13 +111,11 @@ class NILineChart extends HTMLElement {
   _getAttributes() {
     for (const key in this.options) {
       const dataAttr = this.getAttribute(key);
-      console.log(key, dataAttr);
       if (!dataAttr) {
         this[key] = this.options[key];
         this.style.setProperty("--" + key, this.options[key]);
         continue;
       }
-      console.log(`Attribute ${key}  found, using  value`);
       if (key == "data") {
         this.data = JSON.parse(dataAttr);
         this.options.data = this.data;
@@ -134,8 +132,6 @@ class NILineChart extends HTMLElement {
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    console.log("line chart changes:");
-    console.log(name, oldValue, newValue);
     this._setAttributes({ [name]: newValue });
   }
 
@@ -204,7 +200,6 @@ class NILineChart extends HTMLElement {
   }
 
   _setChart() {
-    console.log("setting chart");
     const $this = this;
     if (!this.querySelector("div.inner")) {
       const div = document.createElement("div");
@@ -256,7 +251,6 @@ class NILineChart extends HTMLElement {
       .call(d3.axisBottom(x));
 
     svg.append("g").call(d3.axisLeft(y));
-    console.log(this.data);
     svg
       .append("path")
       .datum(this.data)
