@@ -25,13 +25,13 @@ class NILineChart extends HTMLElement {
         max-width: 100%;
       }
       ni-linechart circle {
-        fill: var(--dotColor);
-        r: var(--dotSize);
+        fill: var(--dotcolor);
+        r: var(--dotsize);
         transition: fill .4s ease, r .4s ease;
       }  
       ni-linechart circle.active {
-        fill: var(--activeDotColor);    
-        r: var(--activeDotSize);
+        fill: var(--activedotcolor);    
+        r: var(--activedotsize);
       }    
       ni-linechart.tooltip-side .inner {
         display: flex;    
@@ -40,7 +40,7 @@ class NILineChart extends HTMLElement {
       }
       ni-linechart.tooltip-side .ni-tooltip {
         max-height: 200px;
-        width: calc(var(--tooltipWidth) * 1px);
+        width: calc(var(--tooltipwidth) * 1px);
       }`;
     document.head.appendChild(style);
   }
@@ -89,22 +89,22 @@ class NILineChart extends HTMLElement {
     }
     this.options = {
       data: this.defaultdata,
-      dotSize: 5,
-      dotColor: "oklch(0.8435 0.1399 93.01)",
-      activeDotColor: "oklch(61.719% 0.24781 21.296)",
-      activeDotSize: 7,
-      lineColor: "oklch(0.8435 0.1399 93.01)",
+      dotsize: 5,
+      dotcolor: "oklch(0.8435 0.1399 93.01)",
+      activedotcolor: "oklch(61.719% 0.24781 21.296)",
+      activedotsize: 7,
+      linecolor: "oklch(0.8435 0.1399 93.01)",
       height: null,
       width: null,
       margin: { top: 20, right: 20, bottom: 30, left: 50 },
-      tooltipField: null,
-      tooltipPosition: "near", // options are side and near
-      tooltopBackground: "rgba(0, 0, 0, 0.7)",
-      tooltipWidth: 150,
-      tooltipColor: "#fff",
-      tooltipPadding: "5px",
-      tooltipBorderRadius: "3px",
-      tooltipSideFoldWidth: 600,
+      tooltipfield: null,
+      tooltipposition: "near", // options are side and near
+      tooltopbackground: "rgba(0, 0, 0, 0.7)",
+      tooltipwidth: 150,
+      tooltipcolor: "#fff",
+      tooltippadding: "5px",
+      tooltipborderradius: "3px",
+      tooltipsidefoldwidth: 600,
       ratio: 2.5 // height to width ratio
     };
   }
@@ -140,19 +140,19 @@ class NILineChart extends HTMLElement {
   }
 
   _setUpTooltip() {
-    if (!this.tooltipField) {
+    if (!this.tooltipfield) {
       return;
     }
     this.tooltip = document.createElement("div");
-    this.tooltip.style.background = this.tooltopBackground;
-    this.tooltip.style.color = this.tooltipColor;
-    this.tooltip.style.padding = this.tooltipPadding;
-    this.tooltip.style.borderRadius = this.tooltipBorderRadius;
+    this.tooltip.style.background = this.tooltopbackground;
+    this.tooltip.style.color = this.tooltipcolor;
+    this.tooltip.style.padding = this.tooltippadding;
+    this.tooltip.style.borderRadius = this.tooltipborderradius;
     this.tooltip.style.pointerEvents = "none";
     this.tooltip.style.display = "none";
-    this.classList.add("tooltip-" + this.tooltipPosition);
+    this.classList.add("tooltip-" + this.tooltipposition);
     this.tooltip.classList.add("ni-tooltip");
-    if (this.tooltipPosition == "near") {
+    if (this.tooltipposition == "near") {
       // TODO: CONSIDER USING ANCHOR POSITION INSTEAD
       // NOT READY FOR PRIMETIME YET - https://github.com/w3c/csswg-drafts/issues/11301
       this.tooltip.style.position = "absolute";
@@ -179,11 +179,11 @@ class NILineChart extends HTMLElement {
   _setDynamicWidth(r = false) {
     if (this.parentElement) {
       if (
-        this.tooltipField &&
-        this.tooltipPosition == "side" &&
-        this.parentElement.offsetWidth > this.tooltipSideFoldWidth
+        this.tooltipfield &&
+        this.tooltipposition == "side" &&
+        this.parentElement.offsetWidth > this.tooltipsidefoldwidth
       ) {
-        this.width = this.parentElement.offsetWidth - this.tooltipWidth;
+        this.width = this.parentElement.offsetWidth - this.tooltipwidth;
         this.options.width = this.width;
         this.style.setProperty("--tooltipFlexDirection", "row");
       } else {
@@ -261,7 +261,7 @@ class NILineChart extends HTMLElement {
       .append("path")
       .datum(this.data)
       .attr("fill", "none")
-      .attr("stroke", this.lineColor)
+      .attr("stroke", this.linecolor)
       .attr("stroke-width", 1.5)
       .attr("d", line);
 
@@ -280,13 +280,13 @@ class NILineChart extends HTMLElement {
       .attr("r", function (d) {
         return $this.getDotSize();
       });
-    // .attr("fill", this.dotColor);
+    // .attr("fill", this.dotcolor);
 
-    if (this.tooltipField) {
+    if (this.tooltipfield) {
       svg
         .selectAll("circle")
         .on("mouseover", function (d, i) {
-          const tooltipValue = i[$this.tooltipField];
+          const tooltipValue = i[$this.tooltipfield];
           const dotBounds = d.target.getBoundingClientRect();
           const innerBounds = $this.chartWrapper.getBoundingClientRect();
 
@@ -316,7 +316,7 @@ class NILineChart extends HTMLElement {
     $this._setUpTooltip();
   }
   getDotSize() {
-    return this.dotSize;
+    return this.dotsize;
   }
 }
 customElements.define("ni-linechart", NILineChart);
