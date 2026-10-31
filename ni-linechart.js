@@ -59,9 +59,7 @@ class NILineChart extends HTMLElement {
 
   connectedCallback() {
     // look for data attribute
-    this._getAttributes();
-
-    this._setChart();
+    this._resetChart();
     this._setListeners();
   }
   disconnectedCallback() {
@@ -105,7 +103,8 @@ class NILineChart extends HTMLElement {
       tooltippadding: "5px",
       tooltipborderradius: "3px",
       tooltipsidefoldwidth: 600,
-      ratio: 2.5 // height to width ratio
+      ratio: 2.5, // height to width ratio
+      showtable: false
     };
   }
   _getAttributes() {
@@ -197,6 +196,46 @@ class NILineChart extends HTMLElement {
   _resetChart() {
     this._getAttributes();
     this._setChart();
+    this._showTable();
+  }
+  _showTable() {
+    if (this.showtable) {
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const tbody = document.createElement("tbody");
+
+      const headerRow = document.createElement("tr");
+      Object.keys(this.data[0]).forEach((key) => {
+        if (key === "tooltip") return; // Skip the tooltip column in the table header
+        const th = document.createElement("th");
+        th.textContent = key;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      this.data.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        Object.values(row).forEach((value) => {
+          // if the key is "tooltip", skip this value
+          if (value === row.tooltip) {
+            return;
+          }
+          const td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+
+      if (this.querySelector("div.inner")) {
+        this.querySelector("div.inner").appendChild(table);
+      } else {
+        this.appendChild(table);
+      }
+    }
   }
 
   _setChart() {
